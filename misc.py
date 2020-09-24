@@ -1,9 +1,12 @@
 # %%
+import os
+import yaml
 import tensorflow as tf
 import tensorflow_datasets as tfds
 import larq as lq
 import larq_zoo as lqz
 from tensorflow.keras.callbacks import Callback
+import matplotlib.pyplot as plt
 
 # %%
 class TensorBoardExtra(Callback):
@@ -128,3 +131,38 @@ def get_cnn(input_shape, quant_getter, num_classes):
                             kernel_quantizer=quant_getter(),
                             )
     ]
+
+def avg_evals(evals):
+    # evals are list of dicts
+
+    n_evals = sum([eval is not None for eval in evals])
+    dest_eval = evals.pop(0)
+
+    for metric, graphs in dest_eval.items():
+        for method, vals in graphs.items():
+            # plt.plot(steps, vals, label=method)
+            for i in range(len(vals)):
+                for eval in evals:
+                    dest_eval[metric][method][i] += eval[metric][method][i]
+                dest_eval[metric][method][i] /= n_evals
+    return dest_eval
+
+def dump_evals(path, evals):
+    with open(os.path.join(path, 'evals.yaml'), 'w') as outfile:
+        yaml.dump(evals, outfile, default_flow_style=False)
+
+def plot_dicts(steps, dicts, dir, save=True):
+
+    for metric, graphs in dicts.items():
+        for method, vals in graphs.items():
+            plt.plot(steps, vals, label=method)
+        # plt.set_yscale('log')
+        plt.title(metric)
+        plt.legend()
+        if save:
+            plt.savefig(
+                os.path.join(dir, metric + '.png')
+            )
+            plt.clf()
+        else:
+            plt.show()
