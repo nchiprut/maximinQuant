@@ -62,10 +62,29 @@ def sklearn_huber_regression(y, X, obj_loss, seed):
   regr.fit(X,y)
   return regr.coef_
 
-def maxmin(y, X, obj_loss, seed, n_iter):
+def ste(y, X, obj_loss, seed, n_iter, lr=1e-2):
 
-    max_lr=1e-2
-    min_lr=1e-2
+    n, d = np.shape(X)
+    w = tf.Variable(1e-2*np.random.normal(size=(d,1)), name='w', dtype=tf.float32)
+
+    w_opt = tf.keras.optimizers.SGD(learning_rate=lr)
+
+    for step in range(n_iter):
+        with tf.GradientTape() as w_tape:
+            w_quant = w + tf.stop_gradient(tf.sign(w) - w)
+            loss = tf.reduce_sum(obj_loss(y, X, w_quant, tf))
+
+        w_gradients = w_tape.gradient(loss, [w])
+        w_opt.apply_gradients(zip(w_gradients, [w]))
+
+        if (step % 100 == 0):
+            print (loss.numpy())
+    print ('----')
+    return w.numpy()
+def maxmin(y, X, obj_loss, seed, n_iter, lr=1e-2):
+
+    max_lr=lr
+    min_lr=lr
     n, d = np.shape(X)
     w = tf.Variable(1e-2*np.random.normal(size=(d,1)), name='w', dtype=tf.float32)
     z = tf.Variable(1e-2*np.random.normal(size=(d,1)), name='z', dtype=tf.float32)
