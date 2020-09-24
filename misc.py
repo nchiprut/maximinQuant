@@ -151,14 +151,16 @@ def dump_evals(path, evals):
     with open(os.path.join(path, 'evals.yaml'), 'w') as outfile:
         yaml.dump(evals, outfile, default_flow_style=False)
 
-def plot_dicts(steps, dicts, dir, save=True):
+def plot_dicts(steps, dicts, dir, save=True, logscale=False):
 
     for metric, graphs in dicts.items():
         for method, vals in graphs.items():
             plt.plot(steps, vals, label=method)
-        # plt.set_yscale('log')
+        plt.set_yscale()
         plt.title(metric)
         plt.legend()
+        if logscale:
+            plt.yscale('log')
         if save:
             plt.savefig(
                 os.path.join(dir, metric + '.png')

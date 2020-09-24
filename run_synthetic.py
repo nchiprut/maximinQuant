@@ -4,7 +4,7 @@ import time
 import numpy as np
 from functools import partial
 from datasets import boston_data, regression_data
-from models import run_cvxpy, unconstrained, sdr, lpr, sklearn_lr, maxmin
+from models import run_cvxpy, unconstrained, sdr, lpr, sklearn_lr, maxmin, ste
 from losses import matrix_linear, l1, l2, w_star_dist, np_loss, tf_huber
 from misc import dump_evals, avg_evals, plot_dicts
 
@@ -57,24 +57,30 @@ def run_by_data_cb(cb_arr, metrics, methods, seed):
 if __name__ == "__main__":
     d = 30
     n_train = 60
-    n_runs = 10
+    n_runs = 200
     n_iter = int(1e3)
-    var_arr = np.linspace(0.15,0.6,5)
-    # var_arr = np.linspace(0.15,0.6,2)
-    data_gen_cb = [partial(regression_data, var=var, noise_fn=np.random.laplace ,d=d, n_train=n_train) for var in var_arr]
+    var_arr = np.linspace(0.2,1.5,6)
+    # data_gen_cb = [partial(regression_data, var=var, noise_fn=np.random.laplace ,d=d, n_train=n_train) for var in var_arr]
+    data_gen_cb = [partial(regression_data, var=var, noise_fn=np.random.normal ,d=d, n_train=n_train) for var in var_arr]
 
     params = {'d': d,
               'n_iter': n_iter,
               'n_train': n_train,
               }
     methods = {
-        'unconstrained_l1': partial(unconstrained, obj_loss=l1),
-        # 'ste': partial(ste, obj_loss=l1, n_iter=params['n_iter']//4),
-        'maxmin_l1': partial(maxmin, obj_loss=l1, n_iter=params['n_iter']),
-        # 'maxmin_huber': partial(maxmin, obj_loss=tf_huber, n_iter=params['n_iter']),
-        # 'maxmin_l2': partial(maxmin, obj_loss=l2, n_iter=params['n_iter']),
-        'sdr': partial(sdr, obj_loss=matrix_linear),
-        'lpr_l1': partial(lpr, obj_loss=l1),
+        # 'LR l1': partial(unconstrained, obj_loss=l1),
+        # 'STE l1': partial(ste, obj_loss=l1, n_iter=params['n_iter']),
+        # 'MAXIMIN l1': partial(maxmin, obj_loss=l1, n_iter=params['n_iter']),
+        # 'MAXIMIN l2': partial(maxmin, obj_loss=l2, n_iter=params['n_iter']),
+        # 'SDR': partial(sdr, obj_loss=matrix_linear),
+        # 'LPR l1': partial(lpr, obj_loss=l1),
+
+        'LR l2': partial(unconstrained, obj_loss=l2),
+        'STE l2': partial(ste, obj_loss=l2, n_iter=params['n_iter']),
+        'MAXIMIN l1': partial(maxmin, obj_loss=l1, n_iter=params['n_iter']),
+        'MAXIMIN l2': partial(maxmin, obj_loss=l2, n_iter=params['n_iter']),
+        'SDR': partial(sdr, obj_loss=matrix_linear),
+        'LPR l2': partial(lpr, obj_loss=l2),
     }
 
     metrics = {
