@@ -1,5 +1,4 @@
 # %%
-# %%
 import numpy as np
 from sklearn.datasets import load_boston
 
@@ -21,13 +20,36 @@ def regression_data(d, var, noise_fn, n_train=5000, n_test=None, w_star=None, se
     return X[:n_train], y[:n_train], X[n_train:], y[n_train:], w_star
 
 
-def boston_data(split=406,seed=None, n_out=0):
+def boston_data(split=.3,seed=None, p_out=0, out_val=100.):
     X, y = load_boston(return_X_y=True)
-    if n_out:
-        out_ind = np.random.choice(split,n_out)
-        out_val = -10
-        X = np.block([[X[out_ind]], [X]])
-        y = np.concatenate((np.ones(n_out)*out_val, y))
-        split += n_out
+    # X, y = load_diabetes(return_X_y=True)
     y = y[:,np.newaxis]
-    return X[:split], y[:split], X[split:], y[split:], np.zeros(X.shape[1])
+    n, d = X.shape
+    n_test = int(n*split)
+    n_train = n - n_test
+    np.random.seed(seed)
+    test_ind = np.random.choice(n,n_test)
+    test_msk = np.zeros(n, dtype=bool)
+    test_msk[test_ind] = True
+
+    X_train = X[~test_msk]
+    y_train = y[~test_msk]
+    X_test = X[test_msk]
+    y_test = y[test_msk]
+    if p_out:
+        n_out = int(p_out*n_train)
+        np.random.seed(seed+1)
+        out_ind = np.random.choice(n_train,n_out)
+        X_train = np.block([[X_train[out_ind]], [X_train]])
+        y_train = np.block([ [np.ones((n_out,1))*out_val], [y_train] ])
+
+    X_mean = X_train.mean(axis=0)
+    X_std = X_train.std(axis=0)
+    y_mean = y_train.mean()
+    y_std = y_train.std()
+
+    X_train = (X_train - X_mean) / X_std
+    X_test = (X_test - X_mean) / X_std
+    y_train = (y_train - y_mean) / y_std
+    y_test = (y_test - y_mean) / y_std
+    return X_train, y_train, X_test, y_test, np.zeros(d)
