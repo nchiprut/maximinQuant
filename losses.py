@@ -37,9 +37,11 @@ def w_star_dist(y, X, w, w_star):
     return 0.5 * np.mean(np.abs(w - w_star)).item()
     # return np.mean((w_star==w))
 
-def np_loss(y, X, w, w_star=None, loss=l2):
+def np_mean_loss(y, X, w, w_star=None, loss=l2):
     return np.mean(loss(y, X, w, np)).item()
 
+def np_sum_loss(y, X, w, w_star=None, loss=l2):
+    return np.sum(loss(y, X, w, np)).item()
       
 def tf_huber(e):
   return tf.where(tf.abs(e)<=1.0,.5*e**2,tf.abs(e)-0.5)
