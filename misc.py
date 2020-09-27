@@ -136,19 +136,19 @@ def avg_evals(evals):
     # evals are list of dicts
 
     n_evals = sum([eval is not None for eval in evals])
-    dest_eval = evals.pop(0)
+    dest_eval = evals[0].copy()
 
     for metric, graphs in dest_eval.items():
         for method, vals in graphs.items():
             # plt.plot(steps, vals, label=method)
             for i in range(len(vals)):
-                for eval in evals:
+                for eval in evals[1:]:
                     dest_eval[metric][method][i] += eval[metric][method][i]
                 dest_eval[metric][method][i] /= n_evals
     return dest_eval
 
-def dump_evals(path, evals):
-    with open(os.path.join(path, 'evals.yaml'), 'w') as outfile:
+def dump_evals(path, name, evals):
+    with open(os.path.join(path, name), 'w') as outfile:
         yaml.dump(evals, outfile, default_flow_style=False)
 
 def plot_dicts(steps, dicts, dir, save=True, logscale=False):
@@ -156,7 +156,6 @@ def plot_dicts(steps, dicts, dir, save=True, logscale=False):
     for metric, graphs in dicts.items():
         for method, vals in graphs.items():
             plt.plot(steps, vals, label=method)
-        plt.set_yscale()
         plt.title(metric)
         plt.legend()
         if logscale:
