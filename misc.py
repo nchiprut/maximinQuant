@@ -72,15 +72,17 @@ def plot_dicts(steps, dicts, dir, save=True, logscale=False):
 
 def get_convnet_layers(input_shape, num_classes, quant_getter, kernel_constraint=None, fc=(), conv=()):
     ret = [tf.keras.layers.InputLayer(input_shape=input_shape)]
-    for conv_i in conv:
+    max_pool_all = 2**len(conv) < input_shape[0]
+    for i, conv_i in enumerate(conv):
         ret.append(
             lq.layers.QuantConv2D(conv_i, (3, 3), use_bias=False,
                                   kernel_quantizer=quant_getter(),
                                   kernel_constraint=kernel_constraint,
                                   padding='SAME')
         )
-        ret += [tf.keras.layers.MaxPooling2D((2, 2)),
-                tf.keras.layers.BatchNormalization(scale=True),
+        if max_pool_all or (i % 2 == 1):
+            ret.append(tf.keras.layers.MaxPooling2D((2, 2)))
+        ret += [tf.keras.layers.BatchNormalization(scale=True),
                 tf.keras.layers.ReLU()]
 
     ret.append(tf.keras.layers.Flatten())

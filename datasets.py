@@ -56,7 +56,7 @@ def boston_data(split=.3,seed=None, p_out=0, out_val=100.):
     y_test = (y_test - y_mean) / y_std
     return X_train, y_train, X_test, y_test, np.zeros(d)
 
-def img_data(ds, bs, shuffle_size=1000):
+def img_data(ds, bs, shuffle_size=1000, augment=False):
 
     (raw_train, raw_test), metadata = tfds.load(
         ds,
@@ -74,12 +74,35 @@ def img_data(ds, bs, shuffle_size=1000):
     std = tf.math.reduce_std(stat_batch, axis=0)
     std += tf.cast(std==0, tf.float32)
 
-    def preprocess(img, label):
-        img = (tf.cast(img, tf.float32) - mean) / std
-        label = tf.one_hot(tf.squeeze(label), num_classes)
-        return img, label
-
-    train_batches = raw_train.map(preprocess).shuffle(shuffle_size,seed=1).batch(bs).prefetch(tf.data.experimental.AUTOTUNE)
-    test_batches = raw_test.map(preprocess).batch(bs).prefetch(tf.data.experimental.AUTOTUNE)
+    train_pre= lambda img, label: _preprocess(img, label, mean, std, num_classes, augment=augment)
+    test_pre= lambda img, label: _preprocess(img, label, mean, std, num_classes, augment=False)
+    train_batches = raw_train.map(train_pre).shuffle(shuffle_size,seed=1).batch(bs).prefetch(tf.data.experimental.AUTOTUNE)
+    test_batches = raw_test.map(test_pre).batch(bs).prefetch(tf.data.experimental.AUTOTUNE)
 
     return train_batches, test_batches, metadata
+
+# def _preprocess(img, label, mean, std, num_classes, augment=False):
+#     img = (tf.cast(img, tf.float32) - mean) / std
+#     label = tf.one_hot(tf.squeeze(label), num_classes)
+#     return img, label
+
+def _preprocess(img, label, mean, std, num_classes, augment=False):
+    img = (tf.cast(img, tf.float32) - mean) / std
+    label = tf.one_hot(tf.squeeze(label), num_classes)
+    if augment:
+        img = _augmentation(img)
+    img = tf.image.per_image_standardization(img)
+    return img, label
+
+def _augmentation(img):
+    img_size = img.get_shape().as_list()
+    h, w, c = img.shape.as_list()
+
+
+    img = tf.image.random_crop(img, [h - 3, w - 3, c])
+    img = tf.image.resize_with_crop_or_pad(img, h, w)
+    img = tf.image.random_flip_left_right(img)
+
+    img = tf.image.random_brightness(img, max_delta=63)
+    img = tf.image.random_contrast(img, lower=0.2, upper=1.8)
+    return img
