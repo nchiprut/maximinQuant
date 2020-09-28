@@ -62,76 +62,6 @@ def get_datasets(ds, bs, shuffle_size=1000):
 
     return train_batches, test_batches, metadata
 
-def get_fc(input_shape, quant_getter, num_classes, fc=()):
-    return \
-        [
-            tf.keras.layers.InputLayer(input_shape=input_shape),
-            tf.keras.layers.Flatten(),
-        ] +  \
-        [
-            lq.layers.QuantDense(fc_i,
-                                 kernel_quantizer=quant_getter(),
-                                 #   kernel_quantizer='ste_sign',
-                                 #  kernel_constraint="weight_clip",
-                                 use_bias=False)
-            for fc_i in fc
-
-        ] +  \
-        [
-            lq.layers.QuantDense(num_classes,
-                                 kernel_quantizer=quant_getter(),
-                                 #  kernel_quantizer='ste_sign',
-                                 #  kernel_constraint="weight_clip",
-                                 use_bias=False)
-        ]
-def get_cnn(input_shape, quant_getter, num_classes):
-    return \
-    [
-        tf.keras.layers.InputLayer(input_shape=input_shape),
-        lq.layers.QuantConv2D(32, (3, 3), use_bias=False,
-                            kernel_quantizer=quant_getter(),
-                            padding='SAME',
-                            ),
-        tf.keras.layers.MaxPooling2D((2, 2)),
-        tf.keras.layers.BatchNormalization(scale=True),
-        tf.keras.layers.ReLU(),
-
-        lq.layers.QuantConv2D(64, (3, 3), use_bias=False,
-                            kernel_quantizer=quant_getter(),
-                            padding='SAME',
-                            ),
-        tf.keras.layers.MaxPooling2D((2, 2)),
-        tf.keras.layers.BatchNormalization(scale=True),
-        tf.keras.layers.ReLU(),
-
-        lq.layers.QuantConv2D(128, (3, 3), use_bias=False,
-                            kernel_quantizer=quant_getter(),
-                            padding='SAME',
-                            ),
-        tf.keras.layers.BatchNormalization(scale=True),
-        tf.keras.layers.ReLU(),
-        tf.keras.layers.Flatten(),
-
-        lq.layers.QuantDense(128, use_bias=False,
-                            kernel_quantizer=quant_getter(),
-                            ),
-        tf.keras.layers.BatchNormalization(scale=True),
-        tf.keras.layers.ReLU(),
-        lq.layers.QuantDense(128, use_bias=False,
-                            kernel_quantizer=quant_getter(),
-                            ),
-        tf.keras.layers.BatchNormalization(scale=True),
-        tf.keras.layers.ReLU(),
-        lq.layers.QuantDense(128, use_bias=False,
-                            kernel_quantizer=quant_getter(),
-                            ),
-        tf.keras.layers.BatchNormalization(scale=True),
-        tf.keras.layers.ReLU(),
-        lq.layers.QuantDense(num_classes, use_bias=False,
-                            kernel_quantizer=quant_getter(),
-                            )
-    ]
-
 def avg_evals(evals):
     # evals are list of dicts
 
@@ -167,3 +97,36 @@ def plot_dicts(steps, dicts, dir, save=True, logscale=False):
             plt.clf()
         else:
             plt.show()
+
+def get_convnet_layers(input_shape, num_classes, quant_getter, kernel_constraint=None, fc=(), conv=()):
+    ret = [tf.keras.layers.InputLayer(input_shape=input_shape)]
+    for conv_i in conv:
+        ret.append(
+            lq.layers.QuantConv2D(conv_i, (3, 3), use_bias=False,
+                                  kernel_quantizer=quant_getter(),
+                                  kernel_constraint=kernel_constraint,
+                                  padding='SAME')
+        )
+        ret += [tf.keras.layers.MaxPooling2D((2, 2)),
+                tf.keras.layers.BatchNormalization(scale=True),
+                tf.keras.layers.ReLU()]
+
+    ret.append(tf.keras.layers.Flatten())
+    for fc_i in fc:
+        ret.append(
+            lq.layers.QuantDense(fc_i,
+                                 kernel_quantizer=quant_getter(),
+                                 kernel_constraint=kernel_constraint,
+                                 use_bias=False)
+        )
+        ret += [tf.keras.layers.BatchNormalization(scale=True),
+                tf.keras.layers.ReLU()]
+
+    ret.append(
+            lq.layers.QuantDense(num_classes,
+                                 kernel_quantizer=quant_getter(),
+                                 kernel_constraint=kernel_constraint,
+                                 use_bias=False)
+    )
+    return ret
+
