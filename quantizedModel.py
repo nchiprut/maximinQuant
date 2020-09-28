@@ -30,7 +30,7 @@ class QuantModel(tf.keras.Model):
                  shape=(tf.reduce_sum([tf.reduce_prod(var.shape) for var in self.trainable_variables if 'batch_normalization' not in var.name]), 1)
                  ), trainable=False, name='z')
     
-    def call(self, input_tensor, training=False):
+    def call(self, input_tensor, training=False): #TODO!!!! move quant_var.assign here (if none, dont assign, else assign and return to default)
         x = input_tensor
         for layer in self.seq_layers:
             x = layer(x, training=training)
@@ -53,7 +53,10 @@ class QuantModel(tf.keras.Model):
                         if 'batch_normalization' not in Wb.name],
                         axis=0)
 
-            min_loss = loss + self.lamda * tf.reduce_mean(self.z * (1. - flat_w**2))
+            if self.max_opt is not None:
+                min_loss = loss + self.lamda * tf.reduce_mean(self.z * (1. - flat_w**2))
+            else:
+                min_loss = loss
 
         w_gradients = w_tape.gradient(min_loss, self.trainable_variables)
         self.optimizer.apply_gradients(zip(w_gradients, self.trainable_variables))
@@ -61,14 +64,12 @@ class QuantModel(tf.keras.Model):
         if self.max_opt is not None:
             with tf.GradientTape(True) as z_tape:
                 z_tape.watch(self.z)
-                y_pred = self(x, training=True)  # Forward pass
-                loss = self.loss_fn(y, y_pred)
 
                 flat_w = tf.concat(
                     [tf.reshape(Wb, (-1, 1)) for Wb in self.trainable_variables \
                             if 'batch_normalization' not in Wb.name],
                             axis=0)
-                max_loss = -loss - self.lamda * tf.reduce_mean(self.z * (1. - flat_w**2))
+                max_loss = -self.lamda * tf.reduce_mean(self.z * (1. - flat_w**2))
 
             z_gradients = z_tape.gradient(max_loss, self.z)
             self.max_opt.apply_gradients([(z_gradients, self.z)])

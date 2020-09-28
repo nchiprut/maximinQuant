@@ -15,8 +15,9 @@ class TensorBoardExtra(Callback):
         self.log_dir = log_dir
 
     def on_epoch_end(self, epoch, logs=None):
-        tf.summary.histogram('z', self.model.z, epoch)
-        tf.summary.scalar('max_lr', self.model.max_opt._decayed_lr(tf.float32), epoch)
+        if self.model.max_opt is not None:
+            tf.summary.histogram('z', self.model.z, epoch)
+            tf.summary.scalar('max_lr', self.model.max_opt._decayed_lr(tf.float32), epoch)
         tf.summary.scalar('min_lr', self.model.optimizer._decayed_lr(tf.float32), epoch)
 
     def on_train_begin(self, logs=None):
