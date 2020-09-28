@@ -2,7 +2,6 @@
 import os
 import yaml
 import tensorflow as tf
-import tensorflow_datasets as tfds
 import larq as lq
 import larq_zoo as lqz
 from tensorflow.keras.callbacks import Callback
@@ -34,34 +33,6 @@ class MaybeSteSign(tf.keras.layers.Layer):
         self.to_quant = Dummy(to_quant)
     def call(self, inputs):
         return tf.cond(self.to_quant.val, lambda: lq.quantizers.SteSign()(inputs), lambda: inputs)
-
-def get_datasets(ds, bs, shuffle_size=1000):
-
-    (raw_train, raw_test), metadata = tfds.load(
-        ds,
-        split=[tfds.Split.TRAIN, tfds.Split.TEST],
-        with_info=True,
-        as_supervised=True,
-    )
-
-    num_classes = metadata.features['label'].num_classes
-        
-    stat_batch = tf.cast(list(iter(
-        raw_train.shuffle(shuffle_size).batch(shuffle_size).take(1)
-        ))[0][0], tf.float32)
-    mean = tf.math.reduce_mean(stat_batch, axis=0)
-    std = tf.math.reduce_std(stat_batch, axis=0)
-    std += tf.cast(std==0, tf.float32)
-
-    def preprocess(img, label):
-        img = (tf.cast(img, tf.float32) - mean) / std
-        label = tf.one_hot(tf.squeeze(label), num_classes)
-        return img, label
-
-    train_batches = raw_train.map(preprocess).shuffle(shuffle_size,seed=1).batch(bs).prefetch(tf.data.experimental.AUTOTUNE)
-    test_batches = raw_test.map(preprocess).batch(bs).prefetch(tf.data.experimental.AUTOTUNE)
-
-    return train_batches, test_batches, metadata
 
 def avg_evals(evals):
     # evals are list of dicts

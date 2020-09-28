@@ -4,10 +4,9 @@ import numpy as np
 import larq as lq
 from pathlib import Path
 import datetime
-from tensorboard.plugins.hparams import api as hp
 
-from misc import get_datasets, get_cnn, get_fc, get_convnet_layers, Bunch
-from misc import TensorBoardExtra, MaybeSteSign
+from datasets import img_data
+from misc import get_convnet_layers, Bunch, TensorBoardExtra, MaybeSteSign
 from deep_models import model_metargs, get_quant_model
 from quantizedModel import QuantModel
 
@@ -15,7 +14,6 @@ from quantizedModel import QuantModel
 # %%
 model_args = Bunch(
     n_epochs=40,
-    decay_epochs=8,
     n_decay=5,
     min_decay=0.9,
     max_decay=1.5,
@@ -36,7 +34,7 @@ base_log_dir = "logs/mnist/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
 quant_var = tf.Variable(True, trainable=False, dtype=tf.bool, name='shuold_quant')
 
-train_batches, test_batches, metadata = get_datasets(ds_args.name, ds_args.bs)
+train_batches, test_batches, metadata = img_data(ds_args.name, ds_args.bs)
 model_args.input_shape = metadata.features['image'].shape
 model_args.n_classes = metadata.features['label'].num_classes
 model_args.n_iter = (metadata.splits['train'].num_examples // ds_args.bs) * model_args.n_epochs

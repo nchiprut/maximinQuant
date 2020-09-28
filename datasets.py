@@ -1,6 +1,8 @@
 # %%
 import numpy as np
 from sklearn.datasets import load_boston
+import tensorflow as tf
+import tensorflow_datasets as tfds
 
 def regression_data(d, var, noise_fn, n_train=5000, n_test=None, w_star=None, seed=0):
 
@@ -53,3 +55,31 @@ def boston_data(split=.3,seed=None, p_out=0, out_val=100.):
     y_train = (y_train - y_mean) / y_std
     y_test = (y_test - y_mean) / y_std
     return X_train, y_train, X_test, y_test, np.zeros(d)
+
+def img_data(ds, bs, shuffle_size=1000):
+
+    (raw_train, raw_test), metadata = tfds.load(
+        ds,
+        split=[tfds.Split.TRAIN, tfds.Split.TEST],
+        with_info=True,
+        as_supervised=True,
+    )
+
+    num_classes = metadata.features['label'].num_classes
+        
+    stat_batch = tf.cast(list(iter(
+        raw_train.shuffle(shuffle_size).batch(shuffle_size).take(1)
+        ))[0][0], tf.float32)
+    mean = tf.math.reduce_mean(stat_batch, axis=0)
+    std = tf.math.reduce_std(stat_batch, axis=0)
+    std += tf.cast(std==0, tf.float32)
+
+    def preprocess(img, label):
+        img = (tf.cast(img, tf.float32) - mean) / std
+        label = tf.one_hot(tf.squeeze(label), num_classes)
+        return img, label
+
+    train_batches = raw_train.map(preprocess).shuffle(shuffle_size,seed=1).batch(bs).prefetch(tf.data.experimental.AUTOTUNE)
+    test_batches = raw_test.map(preprocess).batch(bs).prefetch(tf.data.experimental.AUTOTUNE)
+
+    return train_batches, test_batches, metadata
