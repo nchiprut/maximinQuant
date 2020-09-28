@@ -131,3 +131,20 @@ def get_convnet_layers(input_shape, num_classes, quant_getter, kernel_constraint
     )
     return ret
 
+def get_optimizer(start_lr, decay, decay_steps):
+
+    lr = tf.keras.optimizers.schedules.ExponentialDecay(
+        start_lr, decay_steps, decay, staircase=True
+    )
+    return tf.keras.optimizers.Adam(learning_rate=lr)
+
+
+class Bunch(object):
+    def __init__(self, **kwds):
+        self.__dict__.update(kwds)
+
+    def update(self, **kwds):
+        self.__dict__.update(kwds)
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
