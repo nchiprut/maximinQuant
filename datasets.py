@@ -22,7 +22,7 @@ def regression_data(d, var, noise_fn, n_train=5000, n_test=None, w_star=None, se
     return X[:n_train], y[:n_train], X[n_train:], y[n_train:], w_star
 
 
-def boston_data(split=.3,seed=None, p_out=0, out_val=100.):
+def boston_data(split=.3,seed=None, p_out=0, out_val=-10.):
     X, y = load_boston(return_X_y=True)
     # X, y = load_diabetes(return_X_y=True)
     y = y[:,np.newaxis]

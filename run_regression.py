@@ -6,8 +6,8 @@ import numpy as np
 from functools import partial
 from datasets import boston_data, regression_data
 from models import run_cvxpy, unconstrained, sdr, lpr, sklearn_lr, maxmin, ste,scipy_lpr
-from losses import matrix_linear, l1, l2, w_star_dist, np_sum_loss, np_mean_loss, tf_huber
-from misc import dump_evals, avg_evals, plot_dicts
+from losses import matrix_linear, l1, l2, w_star_dist, np_sum_loss, np_mean_loss
+from misc import dump_evals, avg_evals, plot_dicts, print_evals_stat
 
 
 # %%
@@ -75,8 +75,8 @@ def quad_params(args):
         # 'LR_cvx l2': partial(unconstrained, obj_loss=l2),
         'LR_sk l2': partial(sklearn_lr, obj_loss=l2),
         'STE l2': partial(ste, obj_loss=l2, n_iter=args.n_iter),
-        'MAXIMIN l2': partial(maxmin, obj_loss=l2, n_iter=args.n_iter),
-        'MAXIMIN l1': partial(maxmin, obj_loss=l1, n_iter=args.n_iter),
+        'MAXIMIN l2': partial(maxmin, obj_loss=l2, n_iter=args.n_iter, d_epochs=10),
+        'MAXIMIN l1': partial(maxmin, obj_loss=l1, n_iter=args.n_iter, d_epochs=10),
         'SDR': partial(sdr, obj_loss=matrix_linear),
         # 'LPR_cvx l2': partial(lpr, obj_loss=l2),
         'LPR_spy l2': partial(scipy_lpr, obj_loss=l2),
@@ -93,8 +93,8 @@ def huber_params(args):
     methods = {
         'LR l1': partial(unconstrained, obj_loss=l1),
         'STE l1': partial(ste, obj_loss=l1, n_iter=args.n_iter),
-        'MAXIMIN l1': partial(maxmin, obj_loss=l1, n_iter=args.n_iter),
-        'MAXIMIN l2': partial(maxmin, obj_loss=l2, n_iter=args.n_iter),
+        'MAXIMIN l1': partial(maxmin, obj_loss=l1, n_iter=args.n_iter, d_epochs=10),
+        'MAXIMIN l2': partial(maxmin, obj_loss=l2, n_iter=args.n_iter, d_epochs=10),
         'SDR': partial(sdr, obj_loss=matrix_linear),
         'LPR l1': partial(lpr, obj_loss=l1),
     }
@@ -151,10 +151,11 @@ if __name__ == "__main__":
     parser.add_argument('--n_runs', default=60, type=int, help='')
     parser.add_argument('--plt', default=None, choices=['logscale', 'linear', None],)
 
-    # args = parser.parse_args(['--loss', 'l2','--n_run', '200','--plt', 'logscale'])
-    # args = parser.parse_args(['--loss', 'l1','--n_run', '200','--plt', 'logscale'])
-    # args = parser.parse_args(['--ds', 'boston','--loss', 'l2','--n_run', '1', '--n_iter', '5000'])
-    # args = parser.parse_args(['--ds', 'boston','--loss', 'l1','--n_run', '1','--p_out', '.25', '--n_iter', '5000'])
+    # args = parser.parse_args(['--loss', 'l2','--n_run', '200','--plt', 'logscale'])                                   #synthetic l2
+    # args = parser.parse_args(['--loss', 'l1','--n_run', '200','--plt', 'logscale'])                                   #synthetic l1
+    # args = parser.parse_args(['--ds', 'boston','--loss', 'l2','--n_run', '20', '--n_iter', '10000'])                  #boston l2
+    # args = parser.parse_args(['--ds', 'boston','--loss', 'l1','--n_run', '20','--p_out', '.25', '--n_iter', '10000']) #boston l1
     args = parser.parse_args([])
 
     avg_eval_dict, eval_dicts = main(args)
+    # print_evals_stat(eval_dicts)                                                                                      # print boston stats

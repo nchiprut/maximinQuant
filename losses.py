@@ -43,9 +43,6 @@ def np_mean_loss(y, X, w, w_star=None, loss=l2):
 def np_sum_loss(y, X, w, w_star=None, loss=l2):
     return np.sum(loss(y, X, w, np)).item()
       
-def tf_huber(e):
-  return tf.where(tf.abs(e)<=1.0,.5*e**2,tf.abs(e)-0.5)
-
 def mean_loss(loss, mod, *args, **kwargs):
     if mod is tf:
         return tf.reduce_mean(loss(mod=mod, *args, **kwargs))

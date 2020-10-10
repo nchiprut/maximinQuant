@@ -2,6 +2,7 @@
 import os
 import yaml
 import tensorflow as tf
+import numpy as np
 import larq as lq
 import larq_zoo as lqz
 from tensorflow.keras.callbacks import Callback
@@ -48,6 +49,14 @@ def avg_evals(evals):
                     dest_eval[metric][method][i] += eval[metric][method][i]
                 dest_eval[metric][method][i] /= n_evals
     return dest_eval
+
+def print_evals_stat(evals):
+    for metric in evals[0].keys():
+        print(f'metric: {metric}')
+        for k in evals[0][metric].keys():
+            print(f'method: {k}', end='\t')
+            curr = [evals[i][metric][k][0] for i in range(len(evals))]
+            print(f'mean: {np.mean(curr)} \t std: {np.std(curr)}')
 
 def dump_evals(path, name, evals):
     with open(os.path.join(path, name), 'w') as outfile:

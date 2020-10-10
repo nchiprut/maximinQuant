@@ -31,7 +31,7 @@ def unconstrained(y, X, obj_loss, seed):
     print('unconstrained', 'loss: ', obj_loss.__name__, ', number of samples: ', X.shape[0], 'time', time.time() - start)
     return w.value
 
-def sdr(y, X, obj_loss, seed):
+def sdr(y, X, obj_loss, seed, randomize=None):
     start = time.time()
     n, d = np.shape(X)
     w = cp.Variable((d+1, d+1))
@@ -40,8 +40,13 @@ def sdr(y, X, obj_loss, seed):
     prob = cp.Problem(obj, constraints)
     run_cvxpy(prob, cp.SCS)
 
-    U, *_ = np.linalg.svd(w.value)
-    w_val = U[:-1, :1] / U[-1, 0]
+    if randomize:
+        w_n = np.random.multivariate_normal(np.zeros(d+1), w.value, randomize)
+        bst_sample_ind = np.argmin([np.sum(obj_loss(y, X, np.sign(np.outer(w_n[i], w_n[i])), np)) for i in range(len(w_n))])
+        w_val = (w_n[bst_sample_ind, :-1] / w_n[bst_sample_ind,-1])[:, np.newaxis]
+    else:
+        U, *_ = np.linalg.svd(w.value)
+        w_val = U[:-1, :1] / U[-1, 0]
     print('sdr', 'loss: ', obj_loss.__name__, ', number of samples: ', X.shape[0], 'time', time.time() - start)
     return w_val
 
